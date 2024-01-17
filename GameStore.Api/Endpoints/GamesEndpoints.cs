@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using GameStore.Api.Authorization;
 using GameStore.Api.Dtos;
 using GameStore.Api.Entities;
@@ -14,8 +15,10 @@ public static class GamesEndpoints
         var group = routes.MapGroup("/games")
                 .WithParameterValidation();
 
-        group.MapGet("/", async (IGamesRepository repository) =>
-            (await repository.GetAllAsync()).Select(game => game.AsDto()));
+        group.MapGet("/", async (IGamesRepository repository, ILoggerFactory loggerFactory) => 
+        {
+            return Results.Ok((await repository.GetAllAsync()).Select(game => game.AsDto()));
+        });
 
         group.MapGet("/{id}", async (IGamesRepository repository, int id) =>
         {
