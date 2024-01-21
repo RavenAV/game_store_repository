@@ -25,6 +25,10 @@ _UpgradeReport_Files/
 bin/
 obj/
 TestResults/
+###############
+# VS Code #
+###############
+.vscode/*
 ###################
 # Web publish log #
 ###################
