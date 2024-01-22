@@ -18,6 +18,9 @@
 }
 else
 {
+    <DeleteGame Game="@currentGame" OnClose="@OnDeleteModalClose">
+    </DeleteGame>
+
     <table class="table table-striped table-bordered table-hover">
         <thead class="table-dark">
             <th>Id</th>
@@ -36,7 +39,20 @@ else
                     <td>@game.Genre</td>
                     <td>@game.Price</td>
                     <td>@game.ReleaseDate.ToString("MM/dd/yyyy")</td>
-                    <td></td>
+                    <td>
+                        <button 
+                            class="btn btn-primary" 
+                            @onclick="(() => EditGame(game.Id))">
+                            <i class="oi oi-pencil"></i>
+                        </button>
+                        <button 
+                            class="btn btn-danger" 
+                            data-bs-toggle="modal" 
+                            data-bs-target="#deleteModal" 
+                            @onclick="(() => currentGame = game)">
+                            <i class="oi oi-x"></i>
+                        </button>
+                    </td>
                 </tr>
             }
         </tbody>
@@ -45,11 +61,18 @@ else
 
 @code {
     private Game[]? games;
+    private Game? currentGame;
 
-    protected override void OnInitialized()
-    {
-        games = GameClient.GetGames();
-    }
-
+    protected override void OnInitialized() => games = GameClient.GetGames();
     private void CreateGame() => NavigationManager.NavigateTo("/game");
+    private void EditGame(int id) => NavigationManager.NavigateTo($"/game/{id}");
+
+    private void OnDeleteModalClose(bool accepted)
+    {
+        if (accepted)
+        {
+            GameClient.DeleteGame(currentGame!.Id);
+            games = GameClient.GetGames();
+        }
+    }
 }
