@@ -1,11 +1,14 @@
 using System.Net.Sockets;
 using GameStore.Client.Models;
+using System.Net.Http.Json;
 
 namespace GameStore.Client;
 
 public class GameClient
 {
-    private static readonly List<Game> games = new()
+    private readonly HttpClient httpClient;
+
+    /*private readonly List<Game> games = new()
     {
         new Game()
         {
@@ -31,31 +34,21 @@ public class GameClient
             Price = 69.99M,
             ReleaseDate = new DateTime(2022, 9, 27)
         }
-    };
+    };*/
 
-    public static Game[] GetGames() => games.ToArray();
-
-    public static void AddGame(Game game)
+    public GameClient(HttpClient httpClient)
     {
-        game.Id = games.Max(g => g.Id) + 1;
-        games.Add(game);
+        this.httpClient = httpClient;
     }
 
-    public static Game GetGame(int id) => games.Find(g => g.Id == id) ?? throw new Exception("Could not find game!");
+    public async Task<Game[]?> GetGamesAsync() => await httpClient.GetFromJsonAsync<Game[]>("games");
 
-    public static void UpdateGame(Game updatedGame)
-    {
-        Game existingGame = GetGame(updatedGame.Id);
+    public async Task AddGameAsync(Game game) => await httpClient.PostAsJsonAsync("games", game);
 
-        existingGame.Name = updatedGame.Name;
-        existingGame.Genre = updatedGame.Genre;
-        existingGame.Price = updatedGame.Price;
-        existingGame.ReleaseDate = updatedGame.ReleaseDate;
-    }
+    public async Task<Game> GetGameAsync(int id) => await httpClient.GetFromJsonAsync<Game>($"games/{id}")
+                                              ?? throw new Exception("Could not find game!");
 
-    public static void DeleteGame(int id)
-    {
-        Game game = GetGame(id);
-        games.Remove(game);
-    }
+    public async Task UpdateGameAsync(Game updatedGame) => await httpClient.PutAsJsonAsync($"games/{updatedGame.Id}", updatedGame);
+
+    public async Task DeleteGameAsync(int id) => await httpClient.DeleteAsync($"games/{id}");
 }
