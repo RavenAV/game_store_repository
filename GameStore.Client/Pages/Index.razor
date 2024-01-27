@@ -1,15 +1,23 @@
 ﻿@page "/"
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Clients
 @using Models
 @inject NavigationManager NavigationManager
-@inject GameClient client
+@inject NotAuthenticatedClient noAuthClient;
 
 <PageTitle>Game Catalog</PageTitle>
 
-<h1>Game Catalog</h1>
+<h1></h1>
 
 <div class="row mb-4">
-    <div class="col-sm-6">
-        <button type="button" class="btn btn-primary" @onclick="CreateGame">New Game</button>
+    <div class="col-sm-3">
+        <input type="text" class="form-control" placeholder="Search store" @bind="searchString"
+            @bind:event="oninput" @onkeyup="OnSearchChangedAsync" />
+    </div>    
+    <div class="col">
+        <AuthorizeView Roles="Admin">
+            <button type="button" class="btn btn-primary" @onclick="CreateGame">New Game</button>
+        </AuthorizeView>
     </div>
 </div>
 
@@ -19,61 +27,97 @@
 }
 else
 {
-    <DeleteGame Game="@currentGame" OnClose="@OnDeleteModalCloseAsync">
-    </DeleteGame>
+    <div class="row">
+        <div class="col">
+            <AuthorizeView Roles="Admin">
+                <Authorized>
+                    <DeleteGame Game="@currentGame" OnClose="@OnDeleteModalCloseAsync" />
+                </Authorized>
+            </AuthorizeView>
 
-    <table class="table table-striped table-bordered table-hover">
-        <thead class="table-dark">
-            <th>Id</th>
-            <th>Name</th>
-            <th>Genre</th>
-            <th>Price</th>
-            <th>Release Date</th>
-            <th></th>
-        </thead>
-        <tbody>
-            @foreach (var game in games)
-            {
-                <tr>
-                    <td>@game.Id</td>
-                    <td>@game.Name</td>
-                    <td>@game.Genre</td>
-                    <td>@game.Price</td>
-                    <td>@game.ReleaseDate.ToString("MM/dd/yyyy")</td>
-                    <td>
-                        <button 
-                            class="btn btn-primary" 
-                            @onclick="(() => EditGame(game.Id))">
-                            <i class="oi oi-pencil"></i>
-                        </button>
-                        <button 
-                            class="btn btn-danger" 
-                            data-bs-toggle="modal" 
-                            data-bs-target="#deleteModal" 
-                            @onclick="(() => currentGame = game)">
-                            <i class="oi oi-x"></i>
-                        </button>
-                    </td>
-                </tr>
-            }
-        </tbody>
-    </table>
+            <div class="row row-cols-1 row-cols-md-5">
+                @foreach (var game in games)
+                {
+                    <div class="col">
+                        <div class="card h-100">
+                            <div class="card-img-container">
+                                <img class="card-img-top" src="@game.ImageUri" alt="Card image cap">
+                            </div>
+                            <div class="card-body">
+                                <h5 class="card-title">@game.Name</h5>
+                                <p class="card-text">Genre: @game.Genre</p>
+                                <p class="card-text">Price: @game.Price.ToString("C2")</p>
+                                <p class="card-text">Released: @game.ReleaseDate.ToString("MM/dd/yyyy")</p>                         
+                            </div>
+                            <AuthorizeView Roles="Admin">
+                                <div class="card-footer d-flex justify-content-center">
+                                    <button class="btn btn-primary me-2" @onclick="(() => EditGame(game.Id))"><i
+                                        class="oi oi-pencil"></i></button>
+                                    <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal"
+                                    @onclick="(() => currentGame = game)"><i class="oi oi-x"></i></button>
+                                </div>                                    
+                            </AuthorizeView>                               
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-2">
+        <div class="col">
+            <Pagination PagingInfo="pagingInfo" Spread="2" SelectedPage="SelectedPageAsync" />
+        </div>
+    </div>
+
 }
 
 @code {
     private Game[]? games;
+    private PagingInfo pagingInfo = new PagingInfo();
+    private int selectedPage = 1;
     private Game? currentGame;
+    private string? searchString;
 
-    protected override async Task OnInitializedAsync() => games = await client.GetGamesAsync();
+    protected override async Task OnInitializedAsync() => await FetchGamesAsync();
     private void CreateGame() => NavigationManager.NavigateTo("/game");
+
     private void EditGame(int id) => NavigationManager.NavigateTo($"/game/{id}");
 
     private async Task OnDeleteModalCloseAsync(bool accepted)
     {
         if (accepted)
         {
-            await client.DeleteGameAsync(currentGame!.Id);
-            games = await client.GetGamesAsync();
+            selectedPage = 1;
+            await FetchGamesAsync();
         }
+    }
+
+    private async Task OnSearchChangedAsync()
+    {
+        selectedPage = 1;
+        await FetchGamesAsync();
+    }
+
+    private async Task FetchGamesAsync()
+    {
+        try
+        {
+            var pagingResponse = await noAuthClient.GetGamesAsync(selectedPage, searchString);
+            games = pagingResponse.Items.ToArray();
+            pagingInfo = pagingResponse.PagingInfo;
+        }
+        catch (AccessTokenNotAvailableException exception)
+        {
+
+            exception.Redirect();
+        }
+
+    }
+
+    private async Task SelectedPageAsync(int page)
+    {
+        selectedPage = page;
+        await FetchGamesAsync();
     }
 }

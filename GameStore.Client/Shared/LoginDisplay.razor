@@ -1,0 +1,34 @@
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using System.Security.Claims;
+@using System.Security.Principal;
+@inject NavigationManager Navigation
+
+<AuthorizeView>
+    <Authorized>
+        <div class="dropdown">
+            <a class="link-light text-decoration-none dropdown-toggle" href="#" id="dropdownMenuLink"
+                data-bs-toggle="dropdown" aria-expanded="false">
+                <img src="@GetImageUrl(@context.User.Identity)" alt="mdo" width="32" height="32" class="rounded-circle">
+            </a>
+
+            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuLink">
+                <li><a class="dropdown-item" href="#">@context.User.Identity?.Name</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item" href="#" @onclick="BeginLogOut">Log out</a></li>
+            </ul>
+        </div>
+    </Authorized>
+    <NotAuthorized>
+        <a class="btn btn-warning" href="authentication/login">Log in</a>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private string? GetImageUrl(IIdentity? identity)
+    {
+        return identity is null ? null : ((ClaimsIdentity)identity).FindFirst("picture")?.Value;
+    }
+
+    private void BeginLogOut() => Navigation.NavigateToLogout("authentication/logout");
+}

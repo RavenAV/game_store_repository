@@ -1,0 +1,50 @@
+@using Models
+@inject NavigationManager Navigation
+
+<nav>
+    <ul class="pagination justify-content-center">
+        @foreach (var link in links)
+        {
+            <li @onclick="() => OnSelectedPage(link)"
+            class="page-item @(link.Enabled ? null : "disabled") @(link.Active ? "active" : null)">
+                <a class="page-link" href="@Navigation.Uri">@link.Text</a>
+            </li>
+        }
+    </ul>
+</nav>
+
+@code {
+    [Parameter]
+    public PagingInfo PagingInfo { get; set; } = new();
+    [Parameter]
+    public int Spread { get; set; }
+    [Parameter]
+    public EventCallback<int> SelectedPage { get; set; }
+    private List<PageLink> links = new();
+
+    protected override void OnParametersSet() => CreatePaginationLinks();
+    private void CreatePaginationLinks()
+    {
+        links = new List<PageLink>();
+        links.Add(new PageLink(PagingInfo.CurrentPage - 1, PagingInfo.HasPrevious, "Previous"));
+        for (int i = 1; i <= PagingInfo.TotalPages; i++)
+        {
+            if (i >= PagingInfo.CurrentPage - Spread && i <= PagingInfo.CurrentPage + Spread)
+            {
+                links.Add(new PageLink(i, true, i.ToString()) { Active = PagingInfo.CurrentPage == i });
+            }
+        }
+        links.Add(new PageLink(PagingInfo.CurrentPage + 1, PagingInfo.HasNext, "Next"));
+    }
+
+    private async Task OnSelectedPage(PageLink link)
+    {
+        if (link.Page == PagingInfo.CurrentPage || !link.Enabled)
+        {
+            return;
+        }
+
+        PagingInfo.CurrentPage = link.Page;
+        await SelectedPage.InvokeAsync(link.Page);
+    }
+}

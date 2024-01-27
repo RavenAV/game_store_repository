@@ -1,8 +1,13 @@
 ﻿@page "/game"
 @page "/game/{id:int}"
+@using System.Net.Http.Headers
+@using Microsoft.AspNetCore.Authorization
+@using Clients
 @using Models
+@attribute [Authorize]
 @inject NavigationManager NavigationManager
-@inject GameClient client
+@inject AuthenticatedClient client;
+@inject ImagesClient storageClient;
 
 <PageTitle>@title</PageTitle>
 <h1>Game Catalog</h1>
@@ -10,22 +15,22 @@
 
 @if (game is null)
 {
-    <p><em>Loading...</em></p>
+        <p><em>Loading...</em></p>
 }
 else
 {
-    <div class="row">
+    <div class="row mb-4">
         <div class="col-sm-4">
             <EditForm Model="@game" OnValidSubmit="HandleSubmitAsync">
-                <DataAnnotationsValidator/>
-                <ValidationSummary/>
+                <DataAnnotationsValidator />
+                <ValidationSummary />
                 <div class="mb-3">
                     <label for="name" class="form-label">Name:</label>
                     <InputText id="name" @bind-Value="game.Name" class="form-control"></InputText>
                 </div>
                 <div class="mb-3">
                     <label for="genre" class="form-label">Genre:</label>
-                    <InputSelect id="genre" @bind-Value="game.Genre" class="form-control">
+                    <InputSelect id="genre" @bind-Value="game.Genre" class="form-select">
                         <option value="">Select genre</option>
                         <option value="Fighting">Fighting</option>
                         <option value="Kids and Family">Kids and Family</option>
@@ -42,8 +47,17 @@ else
                     <label for="releaseDate" class="form-label">Release Date:</label>
                     <InputDate id="releaseDate" @bind-Value="game.ReleaseDate" class="form-control"></InputDate>
                 </div>
+                <div class="mb-3">
+                    <label for="imageUri" class="form-label">Image:</label>
+                    <InputFile id="imageUri"  class="form-control" OnChange="@HandleSelected" accept=".png, .jpg, .jpeg">
+                    </InputFile>
+                @if (game.ImageUri is not null)
+                {
+                    <img src="@game.ImageUri" class="img-thumbnail mt-2" />
+                }                    
+                </div>
                 <button type="submit" class="btn btn-primary">Save</button>
-                <button type="button" class="btn btn-secondary" @onclick="Cancel">Cancel</button>
+                <button type="button" class="btn btn-secondary" @onclick="@Cancel">Cancel</button>
             </EditForm>
         </div>
     </div>
@@ -54,20 +68,21 @@ else
     public int? Id { get; set; }
     private Game? game;
     private string title = string.Empty;
+    private string? imageUri { get; set; }
 
     protected override async Task OnParametersSetAsync()
     {
         if (Id is not null)
         {
             Game foundGame = await client.GetGameAsync(Id.Value);
-
             game = new()
             {
                 Id = foundGame.Id,
                 Name = foundGame.Name,
                 Genre = foundGame.Genre,
                 Price = foundGame.Price,
-                ReleaseDate = foundGame.ReleaseDate
+                ReleaseDate = foundGame.ReleaseDate,
+                ImageUri = foundGame.ImageUri
             };
 
             title = $"Edit {game.Name}";
@@ -78,26 +93,47 @@ else
             {
                 Name = string.Empty,
                 Genre = string.Empty,
-                ReleaseDate = DateTime.UtcNow
+                ReleaseDate = DateTime.UtcNow,
+                ImageUri = string.Empty
             };
 
             title = "New game";
         }
     }
 
-    private async Task HandleSubmitAsync() 
+    private async Task HandleSubmitAsync()
     {
         if (game!.Id == 0)
         {
+            if (string.IsNullOrWhiteSpace(game.ImageUri))
+            {
+                game.ImageUri = "https://placehold.co/100";
+            }
             await client.AddGameAsync(game);
         }
         else
         {
             await client.UpdateGameAsync(game);
         }
-        
+
         NavigationManager.NavigateTo("/");
     }
 
     private void Cancel() => NavigationManager.NavigateTo("/");
+
+    private async Task HandleSelected(InputFileChangeEventArgs e)
+    {
+        var imageFile = e.File;
+        if (imageFile == null)
+        {
+            return;
+        }
+
+        using (var ms = imageFile.OpenReadStream(imageFile.Size))
+        {
+            var content = new MultipartFormDataContent();
+            content.Add(new StreamContent(ms), "file", imageFile.Name);
+            game!.ImageUri = await storageClient.UploadImageAsync(content);
+        }
+    }
 }

@@ -1,0 +1,27 @@
+<header>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand align-items-center col-md-5" href="#">Game Store</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false"
+                aria-label="Toggle navigation" @onclick="ToggleNavMenu">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="navbar-collapse @NavMenuCssClass" id="navbarSupportedContent" @onclick="ToggleNavMenu">
+                @* <div class="navbar-nav col-12 col-md-auto justify-content-center">
+                    <NavLink class="nav-link" href="" Match="NavLinkMatch.All">Home</NavLink>
+                    <NavLink class="nav-link" href="games">Games</NavLink>
+                    </div> *@
+                <div class="navbar-nav ms-auto">
+                    <LoginDisplay />
+                </div>
+            </div>
+        </div>
+    </nav>
+</header>
+
+@code {
+    private bool collapseNavMenu = true;
+    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+    private void ToggleNavMenu() => collapseNavMenu = !collapseNavMenu;
+}

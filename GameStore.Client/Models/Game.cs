@@ -19,5 +19,5 @@ public class Game
 
 
     public DateTime ReleaseDate { get; set; }
-    //public required string ImageUri { get; set; }
+    public required string ImageUri { get; set; }
 }
