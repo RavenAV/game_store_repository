@@ -17,11 +17,11 @@ public class EntityFrameworkGamesRepository : IGamesRepository
         this.logger = logger;
     }
 
-    public async Task<IEnumerable<Game>> GetAllAsync(int pageNumber, int pageSize)
+    public async Task<IEnumerable<Game>> GetAllAsync(int pageNumber, int pageSize, string? filter)
     {
         var skipCount = (pageNumber - 1) * pageSize;
 
-        return await dbContext.Games
+        return await FilterGames(filter)
                         .OrderBy(game => game.Id)
                         .Skip(skipCount)
                         .Take(pageSize)
@@ -53,8 +53,19 @@ public class EntityFrameworkGamesRepository : IGamesRepository
             .ExecuteDeleteAsync();
     }
 
-    public async Task<int> CountAsync()
+    public async Task<int> CountAsync(string? filter)
     {
-        return await dbContext.Games.CountAsync();
+        return await FilterGames(filter).CountAsync();
+    }
+
+    private IQueryable<Game> FilterGames(string? filter)
+    {
+        if (string.IsNullOrEmpty(filter))
+        {
+            return dbContext.Games;
+        }
+
+        return dbContext.Games
+                        .Where(game => game.Name.Contains(filter) || game.Genre.Contains(filter));
     }
 }
