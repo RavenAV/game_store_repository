@@ -7,7 +7,7 @@ public interface IGamesRepository
     Task CreateAsync(Game game);
     Task DeleteAsync(int id);
     Task<Game?> GetAsync(int id);
-    Task<IEnumerable<Game>> GetAllAsync();
+    Task<IEnumerable<Game>> GetAllAsync(int pageNumber, int pageSize);
     Task UpdateAsync(Game updatedGame);
-
+    Task<int> CountAsync();
 }

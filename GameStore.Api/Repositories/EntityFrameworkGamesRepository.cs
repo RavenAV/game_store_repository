@@ -17,9 +17,15 @@ public class EntityFrameworkGamesRepository : IGamesRepository
         this.logger = logger;
     }
 
-    public async Task<IEnumerable<Game>> GetAllAsync()
+    public async Task<IEnumerable<Game>> GetAllAsync(int pageNumber, int pageSize)
     {
-        return await dbContext.Games.AsNoTracking().ToListAsync();
+        var skipCount = (pageNumber - 1) * pageSize;
+
+        return await dbContext.Games
+                        .OrderBy(game => game.Id)
+                        .Skip(skipCount)
+                        .Take(pageSize)
+                        .AsNoTracking().ToListAsync();
     }
 
     public async Task<Game?> GetAsync(int id)
@@ -47,4 +53,8 @@ public class EntityFrameworkGamesRepository : IGamesRepository
             .ExecuteDeleteAsync();
     }
 
+    public async Task<int> CountAsync()
+    {
+        return await dbContext.Games.CountAsync();
+    }
 }
